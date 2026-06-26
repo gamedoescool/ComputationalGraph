@@ -1,6 +1,6 @@
 **This is my implementation of the dynamic computational graph and autograd using a custom built TensorNode object. Math is also explained**
 
-No AI, agentic agent, or LLM's was used to create this, as this project is purely to sharpen my skills.
+No AI, agentic agent, or LLM's was used to create this, as the purpose of this project was to sharpen my skills.
 
 Dependencies:
 
