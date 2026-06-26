@@ -17,4 +17,4 @@ numpy
 
 **How to run**
 
-First, you have to install all dependencies using pip install requirements.txt
+First, you have to install all dependencies using pip install requirements.
