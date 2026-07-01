@@ -12,7 +12,7 @@ class TensorNode:
         self.gradient = np.zeros_like(data)
         self.is_param = is_param
     
-    def gradDescent(self,lr:float, outerGrad: np.ndarray):
+    def backprop(self,lr:float, outerGrad: np.ndarray):
         if(outerGrad.shape != self.data.shape):
             SyntaxError("Gradient must be same shape as the data. This should not happen unless something went very wrong on my side.")
         if(self.is_param):
@@ -23,8 +23,8 @@ class TensorNode:
         if(isinstance(other,TensorNode) == False):
             NotImplementedError("cannot add with nontensor")
         def update_policy(lr:float, gradient: np.ndarray):
-            self.gradDescent(lr,gradient)
-            other.gradDescent(lr,gradient)
+            self.backprop(lr,gradient)
+            other.backprop(lr,gradient)
         return TensorNode(self.data + other.data, False, update_policy)
     
     def __sub__(self, other):
@@ -34,21 +34,20 @@ class TensorNode:
         if(isinstance(other,float) == False):
             NotImplementedError("cannot multiply with " + other)
         def update_policy(lr:float, gradient: np.ndarray):
-            self.gradDescent(lr,other*gradient)
+            self.backprop(lr,other*gradient)
         return TensorNode(self.data, False, update_policy)
     
     def __matmul__(self, other):
-        
         if(isinstance(other,TensorNode) == False):
             NotImplementedError("cannot multiply with nontensor")
         def update_policy(lr:float, gradient: np.ndarray):
-            #self @ other -> gradient @ other.T * self -> 
-            self.gradDescent(lr, gradient @ other.data.T)
-            other.gradDescent(lr, self.data.T @ gradient)
+            #gradient * self @ other = gradient @ other.T * self = self.T @ gradient * other
+            self.backprop(lr, gradient @ other.data.T)
+            other.backprop(lr, self.data.T @ gradient)
         return TensorNode(self.data @ other.data, False, update_policy)
+
     
 #interesting engineering thought: the way ive implemented it here makes it basically do depth first topologically backwards. this allows for the same node to perform backprop multiple times. 
 #I think this allows for better model stability as the model takes more microsteps. I'll keep this and see how it performs.
 
-
-        
+#i mean i could implement the regular backprop technique and allow batching but Im deciding not to because i want to try out this novel approach.

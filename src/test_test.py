@@ -8,10 +8,10 @@ y = t.TensorNode(y,True)
 
 z = y @ x
 
-#lets try to minimize z^2 guys!
+#lets try to minimize z^2 (z dot z) guys!
 print(z.data.T @ z.data)
 for i in range(5):
-    z.gradDescent(0.007/(i*i+2*i+1),2*z.data)
+    z.backprop(0.007/(i*i+2*i+1),2*z.data)
     k = y @ x
     print(k.data.T @ k.data)
 # print(z.data.T @ z.data)

@@ -18,3 +18,8 @@ numpy
 **How to run**
 
 First, you have to install all dependencies using pip install requirements.
+
+
+**Future ideas**
+1. implement CUDA acceleration thru CuPy
+2. implement multithreading to allow topological levels of the graph to run at the same time
