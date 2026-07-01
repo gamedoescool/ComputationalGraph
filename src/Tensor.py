@@ -1,7 +1,7 @@
 import numpy as np
 
 class TensorNode:
-    def __init__(self,data: np.ndarray, is_param: bool, update_policy = None):
+    def __init__(self,data: np.ndarray, is_param = True, update_policy = None):
         self.data = data
         self.update_policy = update_policy
         if(self.update_policy == None):
@@ -46,6 +46,9 @@ class TensorNode:
             other.backprop(lr, self.data.T @ gradient)
         return TensorNode(self.data @ other.data, False, update_policy)
 
+    #TODO:
+    #add activation function
+    #i guess go with batch based method because this is a uphill battle
     
 #interesting engineering thought: the way ive implemented it here makes it basically do depth first topologically backwards. this allows for the same node to perform backprop multiple times. 
 #I think this allows for better model stability as the model takes more microsteps. I'll keep this and see how it performs.
