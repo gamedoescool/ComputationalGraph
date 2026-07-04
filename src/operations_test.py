@@ -17,11 +17,8 @@ z = y @ x
 print(z.data)
 print((y_1 @ x_1))
 
-print('--------------------------------------')
-random_grad_mat = np.random.uniform(0,1,size=(3,1))
 
-z.update_policy(np.random.uniform(0,1,size=(3,1)))
+def forward_update(input: np.ndarray):
+            return 1/(1+np.exp(-input))
 
-print(x.gradient)
-
-print(y.gradient)
+print(forward_update(x_1))
