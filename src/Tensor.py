@@ -14,7 +14,7 @@ class TensorNode:
             self.update_policy = dummy_update
         if(forward_update == None):
             def dummy_update2():
-                return
+                return self.data
             self.forward_update = dummy_update2
         if(self.dependents == None):
             self.dependents = []
@@ -23,10 +23,10 @@ class TensorNode:
         self.is_param = is_param
         self.compiled = False
         self.topo_sort = []
-    
+
     def backprop(self, outerGrad: np.ndarray):
         if(outerGrad.shape != self.data.shape):
-            SyntaxError("Gradient must be same shape as the data. This should not happen unless something went very wrong on my side.")
+            raise SyntaxError("Gradient must be same shape as the data. This should not happen unless something went very wrong on my side.")
         self.update_policy(outerGrad)
     
     def update_params(self, lr):
@@ -34,7 +34,7 @@ class TensorNode:
             self.data -= lr*self.gradient
         self.gradient -= self.gradient
 
-    
+    #TODO: once toposort works make temp_grad += to allow for duplicates and all that jazz
     def __add__(self, other):
         if(isinstance(other,TensorNode) == False):
             NotImplementedError("cannot add with nontensor")
@@ -49,11 +49,11 @@ class TensorNode:
         return TensorNode(forward_update(), False, [self,other], forward_update, update_policy)
     
     def __sub__(self, other):
-        return self + (-other)
+        return self + (-1 * other)
     
     def __rmul__(self,other):
         if(isinstance(other,float) == False):
-            NotImplementedError("cannot multiply with " + other)
+            NotImplementedError("cannot multiply with " +  str(other))
         def update_policy(gradient: np.ndarray):
             self.temp_grad = other * gradient
             self.gradient += other*self.temp_grad
@@ -84,10 +84,56 @@ class TensorNode:
         def forward_update():
             return np.sum(self.data * other.data)
         return TensorNode(forward_update(), False, [self, other], forward_update, update_policy)
+    
+    def norm_squared(self):
+        def update_policy(gradient: np.ndarray):
+            self.temp_grad = 2*(gradient*self.data)
+            self.gradient += self.temp_grad
+        def forward_update():
+            return np.sum(self.data * self.data)
+        return TensorNode(forward_update(), False, [self], forward_update, update_policy)
+
+
+    def copy(self):
+        def update_policy(gradient: np.ndarray):
+            self.temp_grad = gradient
+            self.gradient += self.temp_grad
+        def forward_update():
+            return self.data
+        return TensorNode(forward_update(), False, [self], forward_update, update_policy)
+    
+    
+    def sAct(self):
+        def forward_update():
+            mask = (self.data >= 0)
+            mask1 = (self.data < 0)
+            a = np.zeros_like(self.data)
+            a[mask] = self.data[mask]+1
+            a[mask1] = np.exp(self.data[mask1])
+            return a
+        def update_policy(gradient: np.ndarray):
+            mask = (self.data >= 0)
+            mask1 = (self.data < 0)
+            a = np.zeros_like(self.data)
+            a[mask] = 1
+            a[mask1] = np.exp(self.data[mask1])
+            self.temp_grad = gradient * a
+            self.gradient += self.temp_grad
+        return TensorNode(forward_update(), False, [self], forward_update, update_policy)
+    
+    def softmax(self, epsilon):
+        def forward_update():
+            return self.data/(np.sum(self.data)+epsilon)
+        def update_policy(gradient: np.ndarray):
+            denom = np.sum(self.data)+epsilon
+            val1 = denom * gradient
+            val2 = np.ones_like(self.data) * (np.sum(gradient * self.data))
+            self.temp_grad = (val1 - val2)/(denom*denom)
+            self.gradient += self.temp_grad
+        return TensorNode(forward_update(), False, [self], forward_update, update_policy)   
+
     def compile(self):
         self.iterator = deque()
-        if(self.data.size != 1):
-            TypeError("Tensor MUST be a scalar in order to compile the pipeline")
         self.iterator.append([self])
 
         while(len(self.iterator) != 0):
@@ -107,32 +153,44 @@ class TensorNode:
         return self.topo_sort
     
     def train(self):
+        #update paramaters
+        self.compute(self.topo_sort[-1][0].data)
+        
         if(self.data.size != 1):
-            TypeError("Tensor MUST be a scalar in order to train the pipeline")
+            raise TypeError("Tensor MUST be a scalar in order to train the pipeline")
         if (self.compiled == False):
-            RuntimeError("Pipeline must be compiled in order to train")
+            raise RuntimeError("Pipeline must be compiled in order to train")
         for level in self.topo_sort:
             #parallel magic maybe?
             for node in level:
                 node.update_policy(node.temp_grad)
+                #TODO: once toposort works set node.temp_grad to 0
 
     def update(self, lr: float):
         if(self.data.size != 1):
-            TypeError("Tensor MUST be a scalar in order to update the pipeline")
+            raise TypeError("Tensor MUST be a scalar in order to update the pipeline")
         if (self.compiled == False):
-            RuntimeError("Pipeline must be compiled in order to update")
+            raise RuntimeError("Pipeline must be compiled in order to update")
         for level in self.topo_sort:
-            #parallel magic maybe?
             for node in level:
-                node.data -= lr*node.gradient
-                node.gradient -= node.gradient
+                node.update_params(lr)
+        
 
+    def compute(self, input):
+        if (self.compiled == False):
+            raise RuntimeError("Pipeline must be compiled in order to compute")
+        if(len(self.topo_sort[-1]) != 1):
+            raise RuntimeError("Initial layer is ambiguous, please use .initalize()")
+        self.topo_sort[-1][0].data = input
+        for layer in reversed(self.topo_sort):
+            for node in layer:
+                node.data = node.forward_update()
+
+        
     #TODO:
-    #add activation function
-    #add compile(), compute(np.ndarray input), train(), update() methods.
+    #fix toposort to actually toposort
+    
 
     
-#interesting engineering thought: the way ive implemented it here makes it basically do depth first topologically backwards. this allows for the same node to perform backprop multiple times. 
-#I think this allows for better model stability as the model takes more microsteps. I'll keep this and see how it performs.
 
-#i mean i could implement the regular backprop technique and allow batching but Im deciding not to because i want to try out this novel approach.
+

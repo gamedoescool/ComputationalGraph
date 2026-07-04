@@ -1,37 +1,44 @@
 import Tensor as t
 import numpy as np
 
+#simple perceptron example (works like a CHARM)
+epsilon = 1e-7
+def func(input: np.ndarray):
+    mask = (input >= 0)
+    mask1 = (input < 0)
+    a = np.zeros_like(input)
+    a[mask] = input[mask]+1
+    a[mask1] = np.exp(input[mask1])
+    return a
 
-def pipeline(x_1,y_1,train):
-    x = t.TensorNode(x_1,True)
-    y = t.TensorNode(y_1,True)
+#weights
+w = np.random.uniform(0,1,size=(15,10))
+b = np.random.uniform(0,1,size=(15,1))
 
-    z = (y @ x)
-    #lets try to minimize z^2 (z dot z) guys!
-    loss = z.dot(z)
+#demo input output
+X = np.random.uniform(0,1,size=(10,1))
+Y = np.random.uniform(0,1,size=(15,1))
 
+x = t.TensorNode(X,is_param=False).copy()
 
-    print(loss.data)
-    if(train):
-        k = loss.compile()
-        loss.train()
-        loss.update(0.003)
-    
+W = t.TensorNode(w)
+B = t.TensorNode(b)
 
+L = W @ x + B
+Y_out = L.sAct()
 
-x_1 = np.random.uniform(0,1,size=(10,1))
-y_1 = np.random.uniform(0,1,size=(3,10))
+loss = (t.TensorNode(Y,is_param=False) - Y_out).norm_squared()
 
-print(x_1)
-print(y_1)
-pipeline(x_1,y_1,True)
-print(x_1)
-print(y_1)
-pipeline(x_1,y_1,False)
+l = func(w @ X + b) - Y
 
+print(np.sum(l*l))
+print(loss.data)
 
-# print(z.data.T @ z.data)
+loss.compile()
+loss.train()
+loss.update(1)
 
-#it actually works... now what?
+print(loss.data)
+l = func(w @ X + b) - Y
 
-#we redo the mnist dataset but 900 times better 🗿
+print(np.sum(l*l))
