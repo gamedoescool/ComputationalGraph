@@ -26,6 +26,8 @@ class TensorNode:
     def update_params(self, lr):
         if(self.is_param):
             self.data -= lr*self.gradient
+        else:
+            self.data = self.forward_update()
         self.gradient -= self.gradient
 
     #TODO: once toposort works make temp_grad += to allow for duplicates and all that jazz
@@ -33,12 +35,10 @@ class TensorNode:
         if(isinstance(other,TensorNode) == False):
             NotImplementedError("cannot add with nontensor")
         def update_policy(gradient: np.ndarray):
-            k = np.zeros_like(self.gradient)
-            util.condense(gradient,k.shape,k)
-            self.temp_grad = k
+            util.condense(gradient,self.temp_grad.shape,self.temp_grad)
             self.gradient += self.temp_grad
 
-            other.temp_grad = k
+            util.condense(gradient,other.temp_grad.shape,out=other.temp_grad)
             other.gradient += other.temp_grad
         def forward_update():
             return self.data + other.data
@@ -52,14 +52,10 @@ class TensorNode:
             return self.data * other.data
 
         def update_policy(gradient: np.ndarray):
-            k = np.zeros_like(self.data)
-            util.condense(other.data*gradient,k,out=k)
-            self.temp_grad = k
+            util.condense(other.data*gradient,self.temp_grad.shape,out=self.temp_grad)
             self.gradient += self.temp_grad
 
-            k = np.zeros_like(other.data)
-            util.condense(self.data * gradient, k, out=k)
-            other.temp_grad = k
+            util.condense(self.data * gradient, other.temp_grad.shape, out=other.temp_grad)
             other.gradient += other.temp_grad
         return TensorNode(forward_update(),False,[self,other],forward_update,update_policy)
             
@@ -78,10 +74,10 @@ class TensorNode:
             NotImplementedError("cannot multiply with nontensor")
         def update_policy(gradient: np.ndarray):
             #gradient * self @ other = gradient @ other.T * self = self.T @ gradient * other
-            np.matmul(gradient, other.data.T, out=self.temp_grad)
+            util.condense(gradient @ other.data.T, self.temp_grad.shape,out=self.temp_grad)
             self.gradient += self.temp_grad
             
-            np.matmul(self.data.T,gradient,out=other.temp_grad)
+            util.condense(self.data.T @ gradient, other.temp_grad.shape,out=other.temp_grad)
             other.gradient += other.temp_grad
         def forward_update():
             return self.data @ other.data
@@ -135,13 +131,35 @@ class TensorNode:
             self.temp_grad = (val1 - val2)/(denom*denom)
             self.gradient += self.temp_grad
         return TensorNode(forward_update(), False, [self], forward_update, update_policy) 
+    
+    def sum(self, axis,keepDim=False):
+        def forward_update():
+            return np.sum(self.data,axis=axis,keepdims=keepDim)
+        def update_policy(gradient: np.ndarray):
+            self.temp_grad = (gradient + np.zeros_like(self.temp_grad)) # shhh nothing shuold happen
+            self.gradient += self.temp_grad
+        return TensorNode(forward_update(),False,[self],forward_update,update_policy)
+    
+    def __truediv__(self, other):
+        """
+        Performs numpy division on the two tensors. PLEASE make sure that other dosent have any zero elements (or close to 0)
+        Args:
+            other (TensorNode): The other tensorNode
+        Returns:
+            out: A tensornode representing the numpy division of self/other
+        """
+        def forward_update():
+            return self.data/other.data
+        #yea idk how to impl this yet
+
+        
 
     #dp/dt = kp(1-p/L) = p(1-p) as k = 1 and L = 1
     def sigmoid(self):
         def forward_update():
             return 1/(1+np.exp(-self.data)) # i love numpy broadcasting
         def update_policy(gradient: np.ndarray):
-            dx = forward_update()*(1-forward_update)
+            dx = forward_update()*(1-forward_update())
             self.temp_grad = gradient * dx
             self.gradient += self.temp_grad
         return TensorNode(forward_update(),False,[self],forward_update,update_policy)
@@ -174,7 +192,6 @@ class Pipeline:
     
     def train(self):
         #update paramaters
-        self.recompute()
         for level in self.topo_sort:
             #parallel magic maybe?
             for node in level:
@@ -182,17 +199,24 @@ class Pipeline:
                 #TODO: once toposort works set node.temp_grad to 0
 
     def update(self, lr: float):
-        for level in self.topo_sort:
-            for node in level:
-                node.update_params(lr)
-        
-    def recompute(self):
+        """
+        Updates the parameters of the pipeline and recomputes all associated Tensors
+        Args:
+            lr (float): Learning Rate to be used for Gradient Descent
+        Returns:
+            None
+        """
         for layer in reversed(self.topo_sort):
             for node in layer:
-                node.data = node.forward_update()
+                node.update_params(lr)
+    
+
     def update_input(self, input):
         if(len(self.topo_sort[-1]) != 1):
             raise RuntimeError("Initial layer is ambiguous, please use .initalize()")
-        self.topo_sort[-1][0] = input
-
+        self.topo_sort[-1][0].data = input
+        for layer in reversed(self.topo_sort):
+            for node in layer:
+                node.data = node.update_policy()
+    
 

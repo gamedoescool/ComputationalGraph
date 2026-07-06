@@ -1,0 +1,34 @@
+Create a paper describing this with chapters.
+Title: My Implimentation with deep learning
+Purpose: to mathamatically describe how deep learning is truly implimented
+Prereqs: Multivariate Calculus (gradient, jacobian), Linear Algebra (like all of it), Basic Data Structures (Graphs, Topological Sorting)
+
+1. Matrix Calculus
+1.1 Definition of derivative
+1.2 Product Rule
+1.3 Chain Rule
+1.4 Input Rule
+2. Gradient Descent reimagined
+2.1 Gradient Descent Viewed Through Linear Approximation
+2.2 The Core Equation of Backpropogation
+3. Backpropogation implementation in deep learning
+3.1 Computational graph 
+3.2 Topological execution
+3.3 Proofs for Various Layers
+Layers:
+Activation FUnctions
+Regularization
+Addition
+Matmul
+Dot Product
+element wise mult
+element wise Inverse (for Division!)
+4. Technical notes regarding broadcasting
+4.1 Broadcasting definitions and rules
+4.2 Correction rule for Addition
+4.3 Correction rule for element wise mult
+4.4 Correction rule for Matrix mult
+5. Implimentation Specification
+5.1 The TensorNode class
+5.2 The Compiler Class
+5.3 Simple documentation

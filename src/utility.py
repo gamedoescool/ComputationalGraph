@@ -4,14 +4,15 @@ def condense(input: np.ndarray, shape: tuple, out):
     reduce = []
     for j in range(len(shape),len(input.shape)):
         reduce.append(j)
-    np.sum(input,axis=tuple(reduce),out=out)
+
+    temp = np.sum(input,axis=tuple(reduce))
 
     #pass 2: condense  1's
     reduce = []
     for j in range(len(shape)):
-        if(input.shape[j] != shape[j]):
+        if(temp.shape[j] != shape[j]):
             reduce.append(j)
-    np.sum(input,axis=tuple(reduce), keepdims=True,out=out)
+    np.sum(temp,axis=tuple(reduce), keepdims=True,out=out)
 
 def sAct(data: np.ndarray):
     mask = (data >= 0)

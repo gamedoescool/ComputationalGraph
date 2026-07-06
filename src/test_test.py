@@ -12,33 +12,36 @@ def func(input: np.ndarray):
     return a
 
 #weights
-w = np.random.uniform(0,1,size=(15,10))
-b = np.random.uniform(0,1,size=(15,1))
+w = np.random.uniform(0,1,size=(10,15))
+b = np.random.uniform(0,1,size=(1,15))
 
 #demo input output
-X = np.random.uniform(0,1,size=(10,1))
-Y = np.random.uniform(0,1,size=(15,1))
+X = np.random.uniform(0,1,size=(60_000,10))
+Y = np.random.uniform(0,1,size=(60_000,15))
 
 x = t.TensorNode(X,is_param=False).copy()
 
 W = t.TensorNode(w)
 B = t.TensorNode(b)
 
-L = W @ x + B
+L = x @ W + B
 Y_out = L.sAct()
 
 loss = (t.TensorNode(Y,is_param=False) - Y_out).norm_squared()
 
-l = func(w @ X + b) - Y
+l = func(X @ w + b) - Y
 
 print(np.sum(l*l))
 print(loss.data)
 
-loss.compile()
-loss.train()
-loss.update(1)
+compiler = loss.compile()
+compiler.train()
+compiler.update(0.003)
+compiler.train()
+compiler.update(0.003)
+compiler.train()
 
 print(loss.data)
-l = func(w @ X + b) - Y
+l = func(X @ w + b) - Y
 
 print(np.sum(l*l))
