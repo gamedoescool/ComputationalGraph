@@ -177,24 +177,29 @@ class TensorNode:
         Compiles the entire pipeline, allows for traning.
         Returns:
             a Pipeline object representing the entire model."""
-        #reverse topo sort very interesting stuff going on here.
         #okay, this should work....
 
         rev_topo_sort: list[list[TensorNode]] = []
-        iterator: list[TensorNode] = [self]
+        iterator: deque[TensorNode] = [self]
+        curr: int = 0
+        total: int = 1
+        newTotal: int = 0
+        level: list[TensorNode] = []
         #modified toposort logic to allow layering
         while(len(iterator) != 0):
-            level: list[TensorNode] = []
-            limit: int = len(iterator)
-            for index in range(limit):
-                thing: TensorNode = iterator[index]
-                level.append(thing)
-                for depend in thing.dependents:
-                    depend.out_degree-=1
-                    if(depend.out_degree == 0):
-                        iterator.append(depend)
-            rev_topo_sort.append(level)
-        
+            current = iterator.popleft()
+            if(curr == total):
+                rev_topo_sort.append(level)
+                total = newTotal
+                newTotal = 0
+                level = []
+                curr = 0
+            level.append(current)
+            for depend in current.dependents:
+                if(depend.out_degree == 0):
+                    iterator.append(depend)
+                    newTotal+=1
+            curr+=1
         #now re add indegrees in case we need them
         for layer in rev_topo_sort:
             for node in layer:
