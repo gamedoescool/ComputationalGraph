@@ -180,9 +180,9 @@ class TensorNode:
         #reverse topo sort very interesting stuff going on here.
         #okay, this should work....
 
-        topo_sort: list[list[TensorNode]] = []
+        rev_topo_sort: list[list[TensorNode]] = []
         iterator: list[TensorNode] = [self]
-        #modified toposort logic
+        #modified toposort logic to allow layering
         while(len(iterator) != 0):
             level: list[TensorNode] = []
             limit: int = len(iterator)
@@ -193,25 +193,31 @@ class TensorNode:
                     depend.out_degree-=1
                     if(depend.out_degree == 0):
                         iterator.append(depend)
-            topo_sort.append(level)
+            rev_topo_sort.append(level)
         
-        return Pipeline(topo_sort)
+        #now re add indegrees in case we need them
+        for layer in rev_topo_sort:
+            for node in layer:
+                for depend in node.dependents:
+                    depend.out_degree += 1
+        
+        return Pipeline(rev_topo_sort)
 
         
     
 class Pipeline:
-    def __init__(self, topo_sort: list[list[TensorNode]]):
-        self.topo_sort = topo_sort   
+    def __init__(self, rev_topo_sort: list[list[TensorNode]]):
+        self.topo_sort = rev_topo_sort   
     
     def train(self) -> None:
         """
         Trains the pipeline to minimize the scalar loss. Assumes the final layer is the loss function
         """
-        if(self.topo_sort[0][0].data.size != 1):
+        if(self.rev_topo_sort[0][0].data.size != 1):
             raise RuntimeError("Final layer is not a scalar loss function. Please add the loss function")
 
         #update paramaters
-        for level in self.topo_sort:
+        for level in self.rev_topo_sort:
             #parallel magic maybe?
             for node in level:
                 node.update_policy(node.temp_grad)
@@ -223,7 +229,7 @@ class Pipeline:
         Args:
             lr (float): Learning Rate to be used for Gradient Descent
         """
-        for layer in reversed(self.topo_sort):
+        for layer in reversed(self.rev_topo_sort):
             for node in layer:
                 node.update_params(lr)
     
@@ -232,10 +238,10 @@ class Pipeline:
         """
         Updates the entire model's parameters based on stored gradients from training. 
         """
-        if(len(self.topo_sort[-1]) != 1):
+        if(len(self.rev_topo_sort[-1]) != 1):
             raise RuntimeError("Initial layer is ambiguous, please use .initalize() before compiling")
-        self.topo_sort[-1][0].data = input
-        for layer in reversed(self.topo_sort):
+        self.rev_topo_sort[-1][0].data = input
+        for layer in reversed(self.rev_topo_sort):
             for node in layer:
                 node.data = node.update_policy()
     
