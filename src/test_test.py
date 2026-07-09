@@ -1,6 +1,6 @@
 import Tensor as t
 import numpy as np
-
+import Operations as op
 #simple perceptron example (works like a CHARM)
 epsilon = 1e-7
 def func(input: np.ndarray):
@@ -20,15 +20,15 @@ X = np.random.uniform(0,1,size=(60_000,10))
 Y = np.random.uniform(0,1,size=(60_000,15))
 
 x = t.TensorNode(X,is_param=False) #2
-x_new = x.copy()
+x_new = op.copy(x)
 W = t.TensorNode(w) 
 B = t.TensorNode(b) 
 Prod = x_new @ W
 L = Prod + B 
-Y_out = L.sAct() 
+Y_out = op.sAct(L) 
 Y_curr = t.TensorNode(Y,is_param=False)
 diff = Y_out-Y_curr
-loss = diff.norm_squared() 
+loss = op.norm_squared(diff) 
 
 #2 + 1 + 1 + 2 + 1 + 3 = 10
 
@@ -36,8 +36,8 @@ loss = diff.norm_squared()
 
 compiler = loss.compile()
 
-list = compiler.topo_sort
-
+list = compiler.rev_topo_sort
+print(len(list))
 ohiogyat = {
     x:"x",
     x_new:"x.copy()",
@@ -51,7 +51,6 @@ ohiogyat = {
     loss: "||diff||"
    
 }
-
 for level in list:
     ohio = str(len(level))
     for k in level:

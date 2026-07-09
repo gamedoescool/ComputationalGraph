@@ -180,7 +180,8 @@ class TensorNode:
         #okay, this should work....
 
         rev_topo_sort: list[list[TensorNode]] = []
-        iterator: deque[TensorNode] = [self]
+        iterator: deque[TensorNode] = deque()
+        iterator.append(self)
         curr: int = 0
         total: int = 1
         newTotal: int = 0
@@ -196,10 +197,13 @@ class TensorNode:
                 curr = 0
             level.append(current)
             for depend in current.dependents:
+                depend.out_degree -= 1
                 if(depend.out_degree == 0):
                     iterator.append(depend)
                     newTotal+=1
             curr+=1
+        if(len(level) != 0):
+            rev_topo_sort.append(level)
         #now re add indegrees in case we need them
         for layer in rev_topo_sort:
             for node in layer:
@@ -212,7 +216,7 @@ class TensorNode:
     
 class Pipeline:
     def __init__(self, rev_topo_sort: list[list[TensorNode]]):
-        self.topo_sort = rev_topo_sort   
+        self.rev_topo_sort = rev_topo_sort   
     
     def train(self) -> None:
         """

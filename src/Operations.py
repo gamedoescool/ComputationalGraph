@@ -41,7 +41,7 @@ def copy(self: t.TensorNode) -> t.TensorNode:
     Args:
         self (TensorNode): the tensor
     Returns:
-        The generalized norm squared sqrt(self \cdot self)
+        A copy of th enode
     """
     self.out_degree += 1
     def update_policy(gradient: np.ndarray):
