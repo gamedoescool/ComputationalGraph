@@ -87,7 +87,7 @@ def regularization(self: t.TensorNode, epsilon: float = 1e-7) -> t.TensorNode:
         self.append_gradient((val1 - val2)/(denom*denom))
     return t.TensorNode(forward_update(), False, set([self]), forward_update, update_policy) 
 
-def sum(self: t.TensorNode, axis: tuple,keepDim=False,epsilon: float=0) -> t.TensorNode:
+def sum(self: t.TensorNode, axis: tuple,keepDim=False) -> t.TensorNode:
     """
     Performs the numpy operation of np.sum. 
     Args:
@@ -99,7 +99,7 @@ def sum(self: t.TensorNode, axis: tuple,keepDim=False,epsilon: float=0) -> t.Ten
     """
     self.out_degree += 1
     def forward_update():
-        return np.sum(self.data,axis=axis,keepdims=keepDim) + epsilon
+        return np.sum(self.data,axis=axis,keepdims=keepDim)
     def update_policy(gradient: np.ndarray):
         self.append_gradient(gradient) # looks like cheating but it duplicates the gradient like a sum should
     return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
