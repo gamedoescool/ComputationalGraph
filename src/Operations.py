@@ -8,7 +8,7 @@ def dot(self: t.TensorNode,other: t.TensorNode) -> t.TensorNode:
         self (TensorNode): first tensor
         other (TensorNode): second tensor
     Returns:
-        The generalized dot product self \cdot other
+        The generalized dot product self dot other
     """
     self.out_degree += 1
     other.out_degree += 1
@@ -25,7 +25,7 @@ def norm_squared(self: t.TensorNode) -> t.TensorNode:
     Args:
         self (TensorNode): the tensor
     Returns:
-        The generalized norm squared sqrt(self \cdot self)
+        The generalized norm squared sqrt(self dot self)
     """
     self.out_degree += 1
     def update_policy(gradient: np.ndarray):
@@ -41,7 +41,7 @@ def copy(self: t.TensorNode) -> t.TensorNode:
     Args:
         self (TensorNode): the tensor
     Returns:
-        A copy of th enode
+        A copy of the node.
     """
     self.out_degree += 1
     def update_policy(gradient: np.ndarray):
@@ -87,7 +87,7 @@ def regularization(self: t.TensorNode, epsilon: float = 1e-7) -> t.TensorNode:
         self.append_gradient((val1 - val2)/(denom*denom))
     return t.TensorNode(forward_update(), False, set([self]), forward_update, update_policy) 
 
-def sum(self: t.TensorNode, axis: tuple,keepDim=False) -> t.TensorNode:
+def sum(self: t.TensorNode, axis: tuple,keepDim=False,epsilon: float=0) -> t.TensorNode:
     """
     Performs the numpy operation of np.sum. 
     Args:
@@ -99,7 +99,7 @@ def sum(self: t.TensorNode, axis: tuple,keepDim=False) -> t.TensorNode:
     """
     self.out_degree += 1
     def forward_update():
-        return np.sum(self.data,axis=axis,keepdims=keepDim)
+        return np.sum(self.data,axis=axis,keepdims=keepDim) + epsilon
     def update_policy(gradient: np.ndarray):
         self.append_gradient(gradient) # looks like cheating but it duplicates the gradient like a sum should
     return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
@@ -112,4 +112,4 @@ def sigmoid(self: t.TensorNode) -> t.TensorNode:
     def update_policy(gradient: np.ndarray):
         dx = forward_update()*(1-forward_update())
         self.append_gradient(gradient * dx)
-    return t.TensorNode(forward_update(),False,{self},forward_update,update_policy)
+    return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)

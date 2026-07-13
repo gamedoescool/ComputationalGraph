@@ -4,12 +4,12 @@ import numpy as np
 from collections import deque
 import utility as util
 class TensorNode:
-    def __init__(self,data: np.ndarray, is_param: bool = True, dependents: set[TensorNode] | None = None, forward_update: Callable[[np.ndarray],None] | None = None, update_policy: Callable[[np.ndarray],np.ndarray] | None = None):
+    def __init__(self,data: np.ndarray, is_param: bool = True, dependents: set[TensorNode] | None = None, forward_update: Callable[[],np.ndarray] | None = None, update_policy: Callable[[np.ndarray],None] | None = None):
         #actual tensor data
         self.data: np.ndarray = data
         #linking tools
-        self.update_policy: Callable[[np.ndarray],np.ndarray] | None = update_policy
-        self.forward_update: Callable[[np.ndarray],None] | None = forward_update
+        self.update_policy: Callable[[np.ndarray],None] | None = update_policy
+        self.forward_update: Callable[[],np.ndarray] | None = forward_update
         self.dependents: set[TensorNode] | None = dependents
 
         #default cases
@@ -40,9 +40,9 @@ class TensorNode:
         """
         if(self.is_param):
             self.data -= lr*self.gradient
+            self.gradient = np.zeros_like(self.gradient)
         else:
             self.data = self.forward_update()
-        self.gradient -= self.gradient
 
     def backprop(self) -> None:
         """
@@ -96,8 +96,8 @@ class TensorNode:
         if(isinstance(other,TensorNode) == False):
             NotImplementedError("cannot add with nontensor")
         def update_policy(gradient: np.ndarray):
-            self.append_gradient(util.condense(gradient,self.gradient.shape))
-            other.append_gradient(util.condense(-gradient,other.gradient.shape))
+            self.append_gradient(util.condense(gradient,self.temp_grad.shape))
+            other.append_gradient(util.condense(-gradient,other.temp_grad.shape))
         def forward_update():
             return self.data - other.data
         return TensorNode(forward_update(), False, set([self,other]), forward_update, update_policy)
@@ -118,8 +118,9 @@ class TensorNode:
         def forward_update():
             return self.data * other.data
         def update_policy(gradient: np.ndarray):
-            self.append_gradient(util.condense(other.data*gradient,self.gradient.shape))
-            other.append_gradient(util.condense(self.data * gradient, other.gradient.shape))
+
+            self.append_gradient(util.condense(other.data*gradient,self.temp_grad.shape))
+            other.append_gradient(util.condense(self.data * gradient, other.temp_grad.shape))
         return TensorNode(forward_update(),False,set([self,other]),forward_update,update_policy)
             
     def __rmul__(self,other: TensorNode) -> TensorNode:
@@ -160,23 +161,28 @@ class TensorNode:
             return self.data @ other.data
         return TensorNode(forward_update(), False, set([self,other]), forward_update, update_policy)
     
-    # def __truediv__(self, other):
-    #     """
-    #     Performs numpy division on the two tensors. PLEASE make sure that other dosent have any zero elements (or close to 0)
-    #     Args:
-    #         other (TensorNode): The other tensorNode
-    #     Returns:
-    #         out: A tensornode representing the numpy division of self/other
-    #     """
-    #     def forward_update():
-    #         return self.data/other.data
-    #     #yea idk how to impl this yet
+    def __truediv__(self, other):
+        """
+        Performs numpy division on the two tensors. PLEASE make sure that other dosent have any zero elements (or close to 0)
+        Args:
+            other (TensorNode): The other tensorNode
+        Returns:
+            out: A tensornode representing the numpy division of self/other
+        """
+        self.out_degree += 1
+        other.out_degree += 1
+        def forward_update() -> np.ndarray:
+            return self.data/other.data
+        def update_policy(gradient: np.ndarray) -> None:
+            self.append_gradient(util.condense(gradient/other.data,self.data.shape))
+            other.append_gradient(util.condense(-gradient * self.data/(other.data * other.data),other.data.shape))
+        return TensorNode(forward_update(),False,set([self,other]),forward_update,update_policy)
 
-    def compile(self) -> Pipeline:
+    def compile(self) -> list[list[TensorNode]]:
         """
         Compiles the entire pipeline, allows for traning.
         Returns:
-            a Pipeline object representing the entire model."""
+            a reverse topological ordering of the entire deep learning pipeline"""
         #okay, this should work....
 
         rev_topo_sort: list[list[TensorNode]] = []
@@ -209,49 +215,10 @@ class TensorNode:
             for node in layer:
                 for depend in node.dependents:
                     depend.out_degree += 1
-        
-        return Pipeline(rev_topo_sort)
+        return (rev_topo_sort)
 
         
     
-class Pipeline:
-    def __init__(self, rev_topo_sort: list[list[TensorNode]]):
-        self.rev_topo_sort = rev_topo_sort   
-    
-    def train(self) -> None:
-        """
-        Trains the pipeline to minimize the scalar loss. Assumes the final layer is the loss function
-        """
-        if(self.rev_topo_sort[0][0].data.size != 1):
-            raise RuntimeError("Final layer is not a scalar loss function. Please add the loss function")
 
-        #update paramaters
-        for level in self.rev_topo_sort:
-            #parallel magic maybe?
-            for node in level:
-                node.update_policy(node.temp_grad)
-                #TODO: once toposort works set node.temp_grad to 0
-
-    def update(self, lr: float) -> None:
-        """
-        Updates the parameters of the pipeline and recomputes all associated Tensors
-        Args:
-            lr (float): Learning Rate to be used for Gradient Descent
-        """
-        for layer in reversed(self.rev_topo_sort):
-            for node in layer:
-                node.update_params(lr)
-    
-
-    def update_input(self, input: np.ndarray) -> None:
-        """
-        Updates the entire model's parameters based on stored gradients from training. 
-        """
-        if(len(self.rev_topo_sort[-1]) != 1):
-            raise RuntimeError("Initial layer is ambiguous, please use .initalize() before compiling")
-        self.rev_topo_sort[-1][0].data = input
-        for layer in reversed(self.rev_topo_sort):
-            for node in layer:
-                node.data = node.update_policy()
     
 
