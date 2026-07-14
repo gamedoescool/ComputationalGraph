@@ -29,13 +29,10 @@ class Pipeline:
                 node.update_params(lr)
     
 
-    def update_input(self, input: np.ndarray) -> None:
+    def update_input(self) -> None:
         """
-        Updates the entire model based on the changed input
+        Updates the entire model, ensures all values are accurate.
         """
-        if(len(self.rev_topo_sort[-1]) != 1):
-            raise RuntimeError("Initial layer is ambiguous, please use .initalize() before compiling")
-        self.rev_topo_sort[-1][0].data = input
         for layer in reversed(self.rev_topo_sort):
             for node in layer:
                 node.data = node.forward_update()

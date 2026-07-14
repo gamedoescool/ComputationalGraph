@@ -75,7 +75,7 @@ class TensorNode:
         if(isinstance(other,TensorNode) == False and isinstance(other,float) == False):
             NotImplementedError("cannot add with type " + str(type(other)))
         if(isinstance(other,float)):
-            other = TensorNode(np.array(other,dtype=np.float64),False)
+            other = TensorNode(np.zeros(shape=(1))+other,False)
 
         self.out_degree += 1
         other.out_degree += 1
@@ -98,7 +98,7 @@ class TensorNode:
         if(isinstance(other,TensorNode) == False and isinstance(other,float) == False):
             NotImplementedError("cannot subtract with type " + str(type(other)))
         if(isinstance(other,float)):
-            other = TensorNode(np.array(other,dtype=np.float64),False)
+            other = TensorNode(np.zeros(shape=(1))+other,False)
         self.out_degree += 1
         other.out_degree += 1
         def update_policy(gradient: np.ndarray):
@@ -161,7 +161,6 @@ class TensorNode:
             NotImplementedError("cannot multiply with nontensor")
         def update_policy(gradient: np.ndarray):
             #gradient * self @ other = gradient @ other.T * self = self.T @ gradient * other
-            print(str(self.data.swapaxes(-2,-1).shape) + " " + str(gradient.shape) + " " + str(other.data.swapaxes(-2,-1).shape))
             self.append_gradient(util.condense(gradient @ other.data.swapaxes(-2,-1), self.temp_grad.shape))
             other.append_gradient(util.condense(self.data.swapaxes(-2,-1) @ gradient, other.temp_grad.shape))
         def forward_update():

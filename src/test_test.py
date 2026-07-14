@@ -17,8 +17,8 @@ w = np.random.uniform(0,1,size=(10,15))
 b = np.random.uniform(0,1,size=(1,15))
 
 #demo input output
-X = np.random.uniform(0,1,size=(60_000,10))
-Y = np.random.uniform(0,1,size=(60_000,15))
+X = np.random.uniform(0,1,size=(1,10))
+Y = np.random.uniform(0,1,size=(1,15))
 
 x = t.TensorNode(X,is_param=False) #2
 x_new = op.copy(x)
@@ -27,17 +27,19 @@ B = t.TensorNode(b)
 Prod = x_new @ W
 L = Prod + B 
 Y_out = (op.sAct(L))
+summyPack = op.sum(Y_out,axis=(1),keepDim=True)
 Y_curr = t.TensorNode(Y,is_param=False)
-diff = Y_out-Y_curr
-loss = op.norm_squared(diff) 
+Y_new = Y_out / (summyPack + 1e-7)
+diff = Y_curr-Y_new
+loss = op.norm_squared(diff)
 
 #2 + 1 + 1 + 2 + 1 + 3 = 10
 
 
 
-compiler = c.Pipeline(loss.compile())
+compiler = (loss.compile())
 
-list = compiler.rev_topo_sort
+list = compiler
 print(len(list))
 ohiogyat = {
     x:"x",
@@ -48,23 +50,26 @@ ohiogyat = {
     L:"L",
     Y_out:"Y_out = f(L)",
     Y_curr:"Y",
-    diff: "f(L)-Y",
+    summyPack:"sum(Y)",
+    Y_new:"Y_reg",
+    diff: "f(L)-Y_reg",
     loss: "||diff||"
    
 }
-# print(Y_out.data[0])
-# print(f"loss {loss.data}")
+print(Y_new.data[0])
+print(f"loss {loss.data}")
+compiler[0][0].temp_grad = np.ones_like(compiler[0][0].temp_grad)
 
-# compiler.train()
-# compiler.update(0.25)
-# print(f"loss {loss.data}")
-# compiler.train()
-# compiler.update(0.25)
-# print(f"loss {loss.data}")
+for level in compiler:
+        for node in level:
+            node.backprop()
+    
+for level in reversed(compiler):
+    for node in level:
+        node.update_params(3)
+print(f"loss {loss.data}")
 
-# print(Y_out.data[0])
+print(Y_new.data[0])
 
-z = Y/np.sum(Y,axis=(1),keepdims=True)
 
-print(np.sum(z[32]))
 
