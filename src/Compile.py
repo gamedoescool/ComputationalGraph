@@ -35,4 +35,4 @@ class Pipeline:
         """
         for layer in reversed(self.rev_topo_sort):
             for node in layer:
-                node.data = node.forward_update()
+                node.refresh()

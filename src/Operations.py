@@ -67,6 +67,17 @@ def sAct(self: t.TensorNode) -> t.TensorNode:
         self.append_gradient(gradient * a)
     return t.TensorNode(forward_update(), False, set([self]), forward_update, update_policy)
 
+def exp(self: t.TensorNode) -> t.TensorNode:
+    """
+    Performs element wise exponent stuff
+    """
+    def forward_update():
+        return np.exp(self.data)
+    def update_policy(gradient: np.ndarray):
+        self.append_gradient(gradient * forward_update())
+    return t.TensorNode(forward_update(),False,set([self]), forward_update, update_policy)
+
+
 #we NEED to make this work on a PER ROW basis...
 def regularization(self: t.TensorNode, epsilon: float = 1e-7) -> t.TensorNode:
     """

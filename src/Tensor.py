@@ -27,11 +27,35 @@ class TensorNode:
 
         #technical gradient components
         if(is_param):
-            self.gradient = np.zeros_like(data)
+            self.gradient: np.ndarray = np.zeros_like(data)
         self.temp_grad: np.ndarray = np.zeros_like(data)
         self.is_param: bool = is_param
         self.out_degree: int = 0 
     
+    def update_data(self, new: np.ndarray):
+        """
+        Updates the data variable of the tensorNode. Only works if the tensorNode is not a paramater.
+        Args:
+            new (np.ndarray): the new ndarray value
+        """
+        if(self.is_param):
+            raise Exception("Cannot manually update the data of a paramater.")
+        self.data = new
+        self.update_gradient_init()
+    def update_gradient_init(self):
+        """
+        Updated the gradients to be a 0 like data
+        """
+        self.temp_grad = np.zeros_like(self.data)
+        if self.is_param:
+            self.gradient = np.zeros_like(self.data)
+        
+    def refresh(self):
+        """
+        Refreshes the tensorNode, updates it.
+        """
+        self.data = self.forward_update()
+        self.update_gradient_init()
     def update_params(self, lr: float) -> None:
         """
         Updates the data variable by either performing gradient descent or making it match dependents.
@@ -73,7 +97,7 @@ class TensorNode:
             a TensorNode representing self + other
         """
         if(isinstance(other,TensorNode) == False and isinstance(other,float) == False):
-            NotImplementedError("cannot add with type " + str(type(other)))
+            raise NotImplementedError("cannot add with type " + str(type(other)))
         if(isinstance(other,float)):
             other = TensorNode(np.zeros(shape=(1))+other,False)
 
@@ -96,7 +120,7 @@ class TensorNode:
             a TensorNode representing self - other
         """
         if(isinstance(other,TensorNode) == False and isinstance(other,float) == False):
-            NotImplementedError("cannot subtract with type " + str(type(other)))
+            raise NotImplementedError("cannot subtract with type " + str(type(other)))
         if(isinstance(other,float)):
             other = TensorNode(np.zeros(shape=(1))+other,False)
         self.out_degree += 1
