@@ -34,6 +34,45 @@ def norm_squared(self: t.TensorNode) -> t.TensorNode:
         return np.sum(self.data * self.data)
     return t.TensorNode(forward_update(), False, set([self]), forward_update, update_policy)
 
+def log(self: t.TensorNode) -> t.TensorNode:
+    """
+    Activation function that takes the natural log of each element.
+    Args:
+        self (TensorNode): the tensor
+        Returns:
+            TensorNode representing log(self)
+    """
+    self.out_degree += 1
+    def update_policy(gradient: np.ndarray):
+        self.append_gradient(gradient/self.data)
+    def forward_update():
+        return np.log(self.data)
+    return t.TensorNode(forward_update(),False, set([self]), forward_update, update_policy)
+
+def softmaxCrossEntropy(self: t.TensorNode, other: t.TensorNode, axis: int):
+    """
+    Returns an efficent and numerically stable version of the softmax of self AND cross entropy of other with respect to self.
+    Args:
+        self (TensorNode): the tensorNode model
+        other (np.ndarray): the model's true values. Please ensure that np.sum(other,axis=axis) = 1 i.e. that the axis is a valid probability distribution.
+        axis (int): axis by which to sum values for softmax.
+    Returns:
+        TensorNode representing the cross entropy of the softmax.
+    """
+    self.out_degree+=1
+    other.out_degree+=1
+    def forward_update():
+        maximal = np.max(self.data,axis=axis)
+        exponential = np.exp(self.data - maximal)
+        summy = np.sum(exponential,axis=axis)
+        return -other.data*(self.data-maximal-np.log(summy))
+    def update_policy(gradient: np.ndarray):
+        maximal = np.max(self.data,axis=axis)
+        exponential = np.exp(self.data - maximal)
+        summy = np.sum(exponential,axis=axis)
+        self.append_gradient(gradient*(exponential/summy - other.data))
+        other.append_gradient(gradient*(self.data-maximal-np.log(summy)))
+    return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
 
 def copy(self: t.TensorNode) -> t.TensorNode:
     """
