@@ -29,9 +29,9 @@ L = Prod + B
 Y_out = (op.sAct(L))
 summyPack = op.sum(Y_out,axis=(1),keepDim=True)
 Y_curr = t.TensorNode(Y,is_param=False)
-Y_new = Y_out / (summyPack + 1e-7)
+Y_new = Y_out
 diff = Y_curr-Y_new
-loss = op.norm_squared(diff)
+loss = op.softmaxCrossEntropy(Y_new,Y_curr,axis=(1))
 
 #2 + 1 + 1 + 2 + 1 + 3 = 10
 
@@ -56,7 +56,6 @@ ohiogyat = {
     loss: "||diff||"
    
 }
-print(Y_new.data[0])
 print(f"loss {loss.data}")
 compiler[0][0].temp_grad = np.ones_like(compiler[0][0].temp_grad)
 

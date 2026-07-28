@@ -62,16 +62,15 @@ def softmaxCrossEntropy(self: t.TensorNode, other: t.TensorNode, axis: int):
     self.out_degree+=1
     other.out_degree+=1
     def forward_update():
-        maximal = np.max(self.data,axis=axis)
+        maximal = np.max(self.data,axis=axis, keepdims=True)
         exponential = np.exp(self.data - maximal)
-        summy = np.sum(exponential,axis=axis)
-        return -other.data*(self.data-maximal-np.log(summy))
+        summy = np.sum(exponential,axis=axis, keepdims=True)
+        return -np.sum(other.data * (self.data-maximal-np.log(summy)))
     def update_policy(gradient: np.ndarray):
-        maximal = np.max(self.data,axis=axis)
+        maximal = np.max(self.data,axis=axis, keepdims=True)
         exponential = np.exp(self.data - maximal)
-        summy = np.sum(exponential,axis=axis)
+        summy = np.sum(exponential,axis=axis, keepdims=True)
         self.append_gradient(gradient*(exponential/summy - other.data))
-        other.append_gradient(gradient*(self.data-maximal-np.log(summy)))
     return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
 
 def copy(self: t.TensorNode) -> t.TensorNode:
