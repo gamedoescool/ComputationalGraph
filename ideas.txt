@@ -15,14 +15,12 @@ Prereqs: Multivariate Calculus (gradient, jacobian), Linear Algebra (like all of
 3.1 Computational graph 
 3.2 Topological execution
 3.3 Proofs for Various Layers
-Layers:
-Activation FUnctions
-Regularization
+Layers examples:
+Activation Functions
 Addition
 Matmul
 Dot Product
 element wise mult
-element wise Inverse (for Division!)
 4. Technical notes regarding broadcasting
 4.1 Broadcasting definitions and rules
 4.2 Correction rule for Addition
@@ -32,3 +30,19 @@ element wise Inverse (for Division!)
 5.1 The TensorNode class
 5.2 The Compiler Class
 5.3 Simple documentation
+
+
+Another paper:
+Encyclopedia of layers: uses the framework described above to prove all sorts of layers
+1. Addition/subtraction (numpy)
+2. Multiplication
+3. Division
+4. Summation
+5. Activation Function General Form
+6. Dot Product
+7. LogExpSum
+
+Planned:
+8. Convolution
+9. Attention (?)
+
