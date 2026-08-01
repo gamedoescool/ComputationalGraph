@@ -10,8 +10,11 @@ Purpose is to sharpen my skills and get a deeper understanding of how AI scales
 **backprop_proofs.ipynb**: File contains the proofs for how to update the gradient of common Tensor operations. 
 
 **Tensor.py**: Contians the TensorNode class for the computational graph
+
 **Compile.py**: Class that navigates the topo sort list. 
+
 **utility.py**: Utility class implementing various special functions
+
 **How to run**
 
 First, you have to install all dependencies using `pip install -r requirements`.
