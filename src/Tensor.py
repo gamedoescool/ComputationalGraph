@@ -98,9 +98,6 @@ class TensorNode:
         """
         if(isinstance(other,TensorNode) == False and isinstance(other,float) == False):
             raise NotImplementedError("cannot add with type " + str(type(other)))
-        if(isinstance(other,float)):
-            other = TensorNode(np.zeros(shape=(1))+other,False)
-
         self.out_degree += 1
         other.out_degree += 1
         def update_policy(gradient: np.ndarray):
@@ -108,9 +105,8 @@ class TensorNode:
             other.append_gradient(util.condense(gradient,other.temp_grad.shape))
         def forward_update():
             return self.data + other.data
-        
         return TensorNode(forward_update(), False, set([self,other]), forward_update, update_policy)
-    
+
     def __sub__(self, other: TensorNode) -> TensorNode:
         """
         Overlays the Numpy operation of subtracting two ndarrays.

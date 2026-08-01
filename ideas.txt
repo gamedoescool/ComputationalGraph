@@ -1,3 +1,8 @@
-8. Convolution
-9. Attention (?)
+Next ideas
+1.RNN 
+2. smart adding of constants
+3. CUDA
+4. Compilation into C 
+5. Convolution
+6. Attention (? maybe)
 
