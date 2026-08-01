@@ -1,8 +1,10 @@
 Next ideas
 1.RNN 
-2. smart adding of constants
-3. CUDA
-4. Compilation into C 
-5. Convolution
-6. Attention (? maybe)
+2. He initalization
+3. ADAM
+4. smart adding of constants
+5. CUDA
+6. Compilation into C 
+7. Convolution
+8. Attention (? maybe)
 
