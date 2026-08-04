@@ -204,6 +204,15 @@ class TensorNode:
             other.append_gradient(util.condense(-gradient * self.data/(other.data * other.data),other.data.shape))
         return TensorNode(forward_update(),False,set([self,other]),forward_update,update_policy)
 
+
+    def get_index(self, j: int):
+        self.out_degree += 1
+        def forward_update():
+            return self.data[j]
+        def update_policy(gradient):
+            self.temp_grad[j] += gradient #i am the alpha sigma omega and tanny at the same time :moai:
+        return TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
+
     def compile(self) -> list[list[TensorNode]]:
         """
         Compiles the entire pipeline, allows for traning.

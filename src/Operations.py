@@ -162,3 +162,12 @@ def sigmoid(self: t.TensorNode) -> t.TensorNode:
         dx = forward_update()*(1-forward_update())
         self.append_gradient(gradient * dx)
     return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
+
+def tanh(self: t.TensorNode) -> t.TensorNode:
+    self.out_degree += 1
+    def forward_update():
+        return np.tanh(self.data)
+    def update_policy(gradient):
+        self.append_gradient(-gradient/np.cosh(self.data)**2)
+    return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
+

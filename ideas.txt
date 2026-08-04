@@ -1,5 +1,5 @@
 Next ideas
-1.RNN 
+1. RNN 
 2. He initalization
 3. ADAM 
 4. smart adding of constants
