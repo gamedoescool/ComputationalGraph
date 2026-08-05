@@ -4,7 +4,7 @@ import numpy as np
 from collections import deque
 import utility as util
 class TensorNode:
-    def __init__(self,data: np.ndarray, is_param: bool = True, dependents: set[TensorNode] | None = None, forward_update: Callable[[],np.ndarray] | None = None, update_policy: Callable[[np.ndarray],None] | None = None):
+    def __init__(self,data: np.ndarray, dependents: set[TensorNode] | None = None, forward_update: Callable[[],np.ndarray] | None = None, update_policy: Callable[[np.ndarray],None] | None = None):
         #actual tensor data
         self.data: np.ndarray = data
         #linking tools
@@ -26,10 +26,7 @@ class TensorNode:
             self.dependents = set([])
 
         #technical gradient components
-        if(is_param):
-            self.gradient: np.ndarray = np.zeros_like(data)
         self.temp_grad: np.ndarray = np.zeros_like(data)
-        self.is_param: bool = is_param
         self.out_degree: int = 0 
     
     def update_data(self, new: np.ndarray):
@@ -38,45 +35,21 @@ class TensorNode:
         Args:
             new (np.ndarray): the new ndarray value
         """
-        if(self.is_param):
-            raise Exception("Cannot manually update the data of a paramater.")
         self.data = new
-        self.update_gradient_init()
-    def update_gradient_init(self):
-        """
-        Updated the gradients to be a 0 like data
-        """
         self.temp_grad = np.zeros_like(self.data)
-        if self.is_param:
-            self.gradient = np.zeros_like(self.data)
         
     def refresh(self):
         """
         Refreshes the tensorNode, updates it.
         """
         self.data = self.forward_update()
-        self.update_gradient_init()
-    def update_params(self, lr: float) -> None:
-        """
-        Updates the data variable by either performing gradient descent or making it match dependents.
-        Args:
-            expression (np.ndarray): the expression at hand
-        """
-        if(self.is_param):
-            self.data -= lr*self.gradient
-            self.gradient = np.zeros_like(self.data)
-        else:
-            self.data = self.forward_update()
+        self.temp_grad = np.zeros_like(self.data)
 
     def backprop(self) -> None:
         """
-        Performs Backprop one time, meaning it passes on the gradients to the creator tensor(s). It also accumulates total gradients
-
+        Performs Backprop one time, meaning it passes on the gradients to the creator tensor(s).
         """
-        if(self.is_param):
-            self.gradient += self.temp_grad
         self.update_policy(self.temp_grad)
-        self.temp_grad = np.zeros_like(self.data)
     
     def append_gradient(self, value: np.ndarray) -> None:
         """
@@ -169,7 +142,7 @@ class TensorNode:
     
     def __matmul__(self, other: TensorNode) -> TensorNode:
         """
-        Overlays the Numpy operation of matrix multiplying two ndarrays.
+        Overlays the Numpy operation of matrix multiplying two ndarrays. Only works if both tensors have the same dimension: make sure to pad ur tensors!
         Args:
             other (TensorNode): the other tensornode
         Returns:
