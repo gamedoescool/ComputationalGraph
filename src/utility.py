@@ -1,4 +1,5 @@
 import numpy as np
+import Tensor as t
 def condense(input: np.ndarray, shape: tuple):
     """
     Condenses the input into a given shape. Uses np.sum to condense axes
@@ -42,3 +43,23 @@ def sActPrime(data: np.ndarray):
     a[mask] = 1
     a[mask1] = np.exp(data[mask1])
     return a
+
+def find_out_dependents(self, other):
+    """
+    Technical functoin that returns dependents and where to access values
+    Args:
+        self: tensor or raw data
+        other: tensor or raw data
+    output:
+        [dependents, selfData,otherData]"""
+
+    if(not isinstance(self,t.TensorNode)):
+        other.out_degree += 1
+        return [set([other]),self]
+    if(not isinstance(other,t.TensorNode)):
+        self.out_degree += 1
+        return [set([self]),self.data,other]
+    
+    other.out_degree += 1
+    self.out_degree += 1
+    return [set([self]),self.data,other]

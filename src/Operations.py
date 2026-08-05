@@ -1,6 +1,7 @@
 import Tensor as t
 import numpy as np
 import utility as util
+#TODO: update all of these functions to utilize the thing
 def dot(self: t.TensorNode,other: t.TensorNode) -> t.TensorNode:
     """
     Computes the generalized dot product between the two Tensors
