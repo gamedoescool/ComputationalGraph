@@ -54,13 +54,13 @@ def find_out_dependents(self, other):
 
     if(not isinstance(self,t.TensorNode)):
         other.out_degree += 1
-        return [set([other]),self]
+        return [set([other]),self, other.data]
     if(not isinstance(other,t.TensorNode)):
         self.out_degree += 1
         return [set([self]),self.data,other]
     
     other.out_degree += 1
     self.out_degree += 1
-    return [set([self]),self.data,other]
+    return [set([self, other]),self.data,other.data]
 
 

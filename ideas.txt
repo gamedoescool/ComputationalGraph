@@ -2,10 +2,10 @@ Next ideas
 1. RNN 
 2. He initalization
 3. ADAM 
-4. smart adding of constants (this is next: operations.py)
+4. smart adding of constants (awaiting testing)
 5. CUDA
 6. Compilation into C 
 7. Convolution
 8. Attention (? maybe)
-9. decoupling update logic, placing the responsibility for updating outside of the DAG. (DONE TO BE TESTED)
+9. decoupling update logic (to be tested)
 

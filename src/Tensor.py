@@ -31,7 +31,7 @@ class TensorNode:
     
     def update_data(self, new: np.ndarray):
         """
-        Updates the data variable of the tensorNode. Only works if the tensorNode is not a paramater.
+        Updates the data variable of the tensorNode. 
         Args:
             new (np.ndarray): the new ndarray value
         """
@@ -150,7 +150,7 @@ class TensorNode:
         Returns:
             a TensorNode representing self @ other
         """
-        return self.matmul(self,other)
+        return TensorNode.matmul(self,other)
 
 
     def __rmatmul__(self, other) -> TensorNode:
@@ -161,7 +161,7 @@ class TensorNode:
         Returns:
             a TensorNode representing other @ self
         """
-        return self.matmul(other,self)
+        return TensorNode.matmul(other,self)
 
     def div(thing, other) -> TensorNode:
         access = util.find_out_dependents(thing,other)
@@ -182,7 +182,7 @@ class TensorNode:
         Returns:
             out: A tensornode representing the numpy division of self/other
         """
-        return self.div(self,other)
+        return TensorNode.div(self,other)
     def __rtruediv__(self, other):
         """
         Performs numpy division on the two tensors. PLEASE make sure that other dosent have any zero elements (or close to 0)
@@ -191,7 +191,7 @@ class TensorNode:
         Returns:
             out: A tensornode representing the numpy division of self/other
         """
-        return self.div(other,self)
+        return TensorNode.div(other,self)
     
     #burner method that will go once i get something more abstract working
     def get_index(self, j: int):
@@ -200,7 +200,7 @@ class TensorNode:
             return self.data[j]
         def update_policy(gradient):
             self.temp_grad[j] += gradient #i am the alpha sigma omega and tanny at the same time :moai:
-        return TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
+        return TensorNode(forward_update(),set([self]),forward_update,update_policy)
 
     def compile(self) -> list[list[TensorNode]]:
         """

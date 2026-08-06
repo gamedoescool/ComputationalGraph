@@ -20,12 +20,14 @@ class Pipeline:
         self.rev_topo_sort[0].temp_grad = np.ones_like(self.rev_topo_sort[0].temp_grad)
 
         #update paramaters
-        deque(map(methodcaller('backprop'), self.rev_topo_sort), maxlen=0)
+        for node in self.rev_topo_sort:
+            node.backprop()
 
     def forward(self) -> None:
         """
         Updates the entire model, ensures all values are accurate. Also sets all gradients to 0 the hero. 
         """
-        for node in reversed(self.rev_topo_sort):
+        for node in self.rev_topo_sort:
             node.refresh()
+
 
