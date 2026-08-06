@@ -20,7 +20,8 @@ class Pipeline:
         self.rev_topo_sort[0].temp_grad = np.ones_like(self.rev_topo_sort[0].temp_grad)
 
         #update paramaters
-        deque(map(methodcaller('backprop'), self.rev_topo_sort), maxlen=0)
+        for node in reversed(self.rev_topo_sort):
+            node.backprop()
 
     def forward(self) -> None:
         """

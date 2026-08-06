@@ -78,7 +78,7 @@ class TensorNode:
             other.append_gradient(util.condense(gradient,other.temp_grad.shape))
         def forward_update():
             return self.data + other.data
-        return TensorNode(forward_update(), False, set([self,other]), forward_update, update_policy)
+        return TensorNode(forward_update(), set([self,other]), forward_update, update_policy)
 
     def __sub__(self, other: TensorNode) -> TensorNode:
         """
@@ -99,7 +99,7 @@ class TensorNode:
             other.append_gradient(util.condense(-gradient,other.temp_grad.shape))
         def forward_update():
             return self.data - other.data
-        return TensorNode(forward_update(), False, set([self,other]), forward_update, update_policy)
+        return TensorNode(forward_update(), set([self,other]), forward_update, update_policy)
     
     def __mul__(self,other: TensorNode) -> TensorNode:
 
@@ -120,7 +120,7 @@ class TensorNode:
 
             self.append_gradient(util.condense(other.data*gradient,self.temp_grad.shape))
             other.append_gradient(util.condense(self.data * gradient, other.temp_grad.shape))
-        return TensorNode(forward_update(),False,set([self,other]),forward_update,update_policy)
+        return TensorNode(forward_update(),set([self,other]),forward_update,update_policy)
             
     def __rmul__(self,other: TensorNode) -> TensorNode:
         """
@@ -138,7 +138,7 @@ class TensorNode:
             self.append_gradient(other * gradient)
         def forward_update():
             return other*self.data
-        return TensorNode(forward_update(), False, set([self]), forward_update, update_policy)
+        return TensorNode(forward_update(), set([self]), forward_update, update_policy)
     
     def __matmul__(self, other: TensorNode) -> TensorNode:
         """
@@ -158,7 +158,7 @@ class TensorNode:
             other.append_gradient(util.condense(self.data.swapaxes(-2,-1) @ gradient, other.temp_grad.shape))
         def forward_update():
             return self.data @ other.data
-        return TensorNode(forward_update(), False, set([self,other]), forward_update, update_policy)
+        return TensorNode(forward_update(), set([self,other]), forward_update, update_policy)
     
     def __truediv__(self, other: TensorNode) -> TensorNode:
         """
@@ -175,7 +175,7 @@ class TensorNode:
         def update_policy(gradient: np.ndarray) -> None:
             self.append_gradient(util.condense(gradient/other.data,self.data.shape))
             other.append_gradient(util.condense(-gradient * self.data/(other.data * other.data),other.data.shape))
-        return TensorNode(forward_update(),False,set([self,other]),forward_update,update_policy)
+        return TensorNode(forward_update(),set([self,other]),forward_update,update_policy)
 
 
     def get_index(self, j: int):
@@ -184,7 +184,7 @@ class TensorNode:
             return self.data[j]
         def update_policy(gradient):
             self.temp_grad[j] += gradient #i am the alpha sigma omega and tanny at the same time :moai:
-        return TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
+        return TensorNode(forward_update(),set([self]),forward_update,update_policy)
 
     def compile(self) -> list[list[TensorNode]]:
         """
