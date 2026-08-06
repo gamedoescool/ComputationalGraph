@@ -11,14 +11,15 @@ def dot(self: t.TensorNode,other: t.TensorNode) -> t.TensorNode:
     Returns:
         The generalized dot product self dot other
     """
-    self.out_degree += 1
-    other.out_degree += 1
+    access = util.find_out_dependents(self,other)
     def update_policy(gradient: np.ndarray):
-        self.append_gradient(gradient * other.data)
-        other.append_gradient(gradient * self.data)
+        if(isinstance(self,t.TensorNode)):
+            self.append_gradient(gradient * access[2])
+        if(isinstance(other,t.TensorNode)):
+            other.append_gradient(gradient * access[1])
     def forward_update():
-        return np.sum(self.data * other.data)
-    return t.TensorNode(forward_update(), False, set([self, other]), forward_update, update_policy)
+        return np.sum(access[1] * access[2])
+    return t.TensorNode(forward_update(), access[0], forward_update, update_policy)
     
 def norm_squared(self: t.TensorNode) -> t.TensorNode:
     """
@@ -50,7 +51,7 @@ def log(self: t.TensorNode) -> t.TensorNode:
         return np.log(self.data)
     return t.TensorNode(forward_update(),False, set([self]), forward_update, update_policy)
 
-def softmaxCrossEntropy(self: t.TensorNode, other: t.TensorNode, axis: int):
+def softmaxCrossEntropy(self: t.TensorNode, other: np.ndarray, axis: int):
     """
     Returns an efficent and numerically stable version of the softmax of self AND cross entropy of other with respect to self.
     Args:
@@ -60,19 +61,21 @@ def softmaxCrossEntropy(self: t.TensorNode, other: t.TensorNode, axis: int):
     Returns:
         TensorNode representing the cross entropy of the softmax.
     """
-    self.out_degree+=1
-    other.out_degree+=1
+    access = util.find_out_dependents(self,other)
     def forward_update():
         maximal = np.max(self.data,axis=axis, keepdims=True)
-        exponential = np.exp(self.data - maximal)
+        exponential = np.exp(access[1] - maximal)
         summy = np.sum(exponential,axis=axis, keepdims=True)
-        return -np.sum(other.data * (self.data-maximal-np.log(summy)))
+        return -np.sum(access[2] * (access[1]-maximal-np.log(summy)))
     def update_policy(gradient: np.ndarray):
-        maximal = np.max(self.data,axis=axis, keepdims=True)
-        exponential = np.exp(self.data - maximal)
+        maximal = np.max(access[1],axis=axis, keepdims=True)
+        exponential = np.exp(access[1] - maximal)
         summy = np.sum(exponential,axis=axis, keepdims=True)
-        self.append_gradient(gradient*(exponential/summy - other.data))
-    return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
+        if(isinstance(self,t.TensorNode)):
+            self.append_gradient(gradient*(exponential/summy - access[2]))
+        if(isinstance(other,t.TensorNode)):
+            other.append_gradient(-gradient*(access[1]-maximal-np.log(summy)))
+    return t.TensorNode(forward_update(),access[0],forward_update,update_policy)
 
 def copy(self: t.TensorNode) -> t.TensorNode:
     """

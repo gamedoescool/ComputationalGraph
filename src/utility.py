@@ -9,18 +9,17 @@ def condense(input: np.ndarray, shape: tuple):
     Returns:
         np.ndarray representing condensed input"""
     #pass 1: trim dimensions
-    reduce = []
-    for j in range(len(shape),len(input.shape)):
-        reduce.append(j)
+    while(len(input.shape) > len(shape)):
+        input = np.sum(input, axis = 0)
 
-    temp = np.sum(input,axis=tuple(reduce))
 
     #pass 2: condense  1's
     reduce = []
     for j in range(len(shape)):
-        if(temp.shape[j] != shape[j]):
+        if(input.shape[j] != shape[j]):
             reduce.append(j)
-    return np.sum(temp,axis=tuple(reduce), keepdims=True)
+    return np.sum(input,axis=tuple(reduce), keepdims=True)
+
 
 def sAct(data: np.ndarray):
     """
@@ -63,3 +62,5 @@ def find_out_dependents(self, other):
     other.out_degree += 1
     self.out_degree += 1
     return [set([self]),self.data,other]
+
+
