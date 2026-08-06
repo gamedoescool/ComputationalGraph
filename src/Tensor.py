@@ -31,7 +31,7 @@ class TensorNode:
     
     def update_data(self, new: np.ndarray):
         """
-        Updates the data variable of the tensorNode. 
+        Updates the data variable of the tensorNode. Only works if the tensorNode is not a paramater.
         Args:
             new (np.ndarray): the new ndarray value
         """
@@ -60,7 +60,8 @@ class TensorNode:
         """
         self.temp_grad += value
     
-    def __add__(self, other: TensorNode) -> TensorNode:
+    #TODO: once toposort works make temp_grad += to allow for duplicates and all that jazz
+    def __add__(self, other: TensorNode | float) -> TensorNode:
         """
         Overlays the Numpy operation of adding two ndarrays.
         Args:
@@ -68,24 +69,17 @@ class TensorNode:
         Returns:
             a TensorNode representing self + other
         """
-        access = util.find_out_dependents(self,other)
+        if(isinstance(other,TensorNode) == False and isinstance(other,float) == False):
+            raise NotImplementedError("cannot add with type " + str(type(other)))
+        self.out_degree += 1
+        other.out_degree += 1
         def update_policy(gradient: np.ndarray):
             self.append_gradient(util.condense(gradient,self.temp_grad.shape))
-            if(isinstance(other,TensorNode)):
-                other.append_gradient(util.condense(gradient,other.temp_grad.shape))
+            other.append_gradient(util.condense(gradient,other.temp_grad.shape))
         def forward_update():
-            return access[1] + access[2]
-        return TensorNode(forward_update(), access[0], forward_update, update_policy)
+            return self.data + other.data
+        return TensorNode(forward_update(), False, set([self,other]), forward_update, update_policy)
 
-    def __radd__(self, other) -> TensorNode:
-        """
-        Overlays the Numpy operation of adding two ndarrays.
-        Args:
-            other (TensorNode): the other tensornode
-        Returns:
-            a TensorNode representing other + self
-        """
-        return self + other
     def __sub__(self, other: TensorNode) -> TensorNode:
         """
         Overlays the Numpy operation of subtracting two ndarrays.
@@ -94,14 +88,18 @@ class TensorNode:
         Returns:
             a TensorNode representing self - other
         """
-        access = util.find_out_dependents(self,other)
+        if(isinstance(other,TensorNode) == False and isinstance(other,float) == False):
+            raise NotImplementedError("cannot subtract with type " + str(type(other)))
+        if(isinstance(other,float)):
+            other = TensorNode(np.zeros(shape=(1))+other,False)
+        self.out_degree += 1
+        other.out_degree += 1
         def update_policy(gradient: np.ndarray):
             self.append_gradient(util.condense(gradient,self.temp_grad.shape))
-            if(isinstance(other,TensorNode)):
-                other.append_gradient(util.condense(-gradient,other.temp_grad.shape))
+            other.append_gradient(util.condense(-gradient,other.temp_grad.shape))
         def forward_update():
-            return access[1] - access[2]
-        return TensorNode(forward_update(), access[0], forward_update, update_policy)
+            return self.data - other.data
+        return TensorNode(forward_update(), False, set([self,other]), forward_update, update_policy)
     
     def __mul__(self,other: TensorNode) -> TensorNode:
 
@@ -112,36 +110,36 @@ class TensorNode:
         Returns:
             a TensorNode representing self * other
         """
-        access = util.find_out_dependents(self,other)
+        self.out_degree += 1
+        other.out_degree += 1
+        if(isinstance(other,float) == False):
+            NotImplementedError("cant do mult with " + str(type(other)))
         def forward_update():
-            return access[1] * access[2]
+            return self.data * other.data
         def update_policy(gradient: np.ndarray):
-            self.append_gradient(util.condense(access[2]*gradient,self.temp_grad.shape))
-            if(isinstance(other,TensorNode)):
-                other.append_gradient(util.condense(access[1] * gradient, other.temp_grad.shape))
-        return TensorNode(forward_update(),access[0],forward_update,update_policy)
+
+            self.append_gradient(util.condense(other.data*gradient,self.temp_grad.shape))
+            other.append_gradient(util.condense(self.data * gradient, other.temp_grad.shape))
+        return TensorNode(forward_update(),False,set([self,other]),forward_update,update_policy)
             
-    def __rmul__(self,other) -> TensorNode:
+    def __rmul__(self,other: TensorNode) -> TensorNode:
         """
-        Overlays the Numpy operation of "multiplying" two ndarrays.
+        Multiples this tensor by scalar (kinda useless might depreciate)
         Args:
             other (TensorNode): the other tensornode
         Returns:
             a TensorNode representing other * self
         """
-        return self * other
-    
-    def matmul(thing, other) -> TensorNode:
-        access = util.find_out_dependents(thing,other)
+        self.out_degree += 1
+        other.out_degree += 1
+        if(isinstance(other,float) == False):
+            NotImplementedError("cannot multiply with " +  str(other))
         def update_policy(gradient: np.ndarray):
-            #gradient * self @ other = gradient @ other.T * self = self.T @ gradient * other
-            if(isinstance(thing,TensorNode)):
-                thing.append_gradient(util.condense(gradient @ access[2].swapaxes(-2,-1), thing.temp_grad.shape))
-            if(isinstance(other,TensorNode)):
-                other.append_gradient(util.condense(access[1].swapaxes(-2,-1) @ gradient, other.temp_grad.shape))
+            self.append_gradient(other * gradient)
         def forward_update():
-            return access[1] @ access[2]
-        return TensorNode(forward_update(), access[0], forward_update, update_policy)
+            return other*self.data
+        return TensorNode(forward_update(), False, set([self]), forward_update, update_policy)
+    
     def __matmul__(self, other: TensorNode) -> TensorNode:
         """
         Overlays the Numpy operation of matrix multiplying two ndarrays. Only works if both tensors have the same dimension: make sure to pad ur tensors!
@@ -150,29 +148,17 @@ class TensorNode:
         Returns:
             a TensorNode representing self @ other
         """
-        return TensorNode.matmul(self,other)
-
-
-    def __rmatmul__(self, other) -> TensorNode:
-        """
-        Overlays the Numpy operation of matrix multiplying two ndarrays. Only works if both tensors have the same dimension: make sure to pad ur tensors!
-        Args:
-            other (TensorNode): the other tensornode
-        Returns:
-            a TensorNode representing other @ self
-        """
-        return TensorNode.matmul(other,self)
-
-    def div(thing, other) -> TensorNode:
-        access = util.find_out_dependents(thing,other)
-        def forward_update() -> np.ndarray:
-            return access[1]/access[2]
-        def update_policy(gradient: np.ndarray) -> None:
-            if(isinstance(thing, TensorNode)):
-                thing.append_gradient(util.condense(gradient/access[2],thing.data.shape))
-            if(isinstance(other, TensorNode)):
-                other.append_gradient(util.condense(-gradient * access[1]/(access[2]**2),other.data.shape))
-        return TensorNode(forward_update(),access[0],forward_update,update_policy)
+        self.out_degree += 1
+        other.out_degree += 1
+        if(isinstance(other,TensorNode) == False):
+            NotImplementedError("cannot multiply with nontensor")
+        def update_policy(gradient: np.ndarray):
+            #gradient * self @ other = gradient @ other.T * self = self.T @ gradient * other
+            self.append_gradient(util.condense(gradient @ other.data.swapaxes(-2,-1), self.temp_grad.shape))
+            other.append_gradient(util.condense(self.data.swapaxes(-2,-1) @ gradient, other.temp_grad.shape))
+        def forward_update():
+            return self.data @ other.data
+        return TensorNode(forward_update(), False, set([self,other]), forward_update, update_policy)
     
     def __truediv__(self, other: TensorNode) -> TensorNode:
         """
@@ -182,25 +168,23 @@ class TensorNode:
         Returns:
             out: A tensornode representing the numpy division of self/other
         """
-        return TensorNode.div(self,other)
-    def __rtruediv__(self, other):
-        """
-        Performs numpy division on the two tensors. PLEASE make sure that other dosent have any zero elements (or close to 0)
-        Args:
-            other (TensorNode): The other tensorNode
-        Returns:
-            out: A tensornode representing the numpy division of self/other
-        """
-        return TensorNode.div(other,self)
-    
-    #burner method that will go once i get something more abstract working
+        self.out_degree += 1
+        other.out_degree += 1
+        def forward_update() -> np.ndarray:
+            return self.data/other.data
+        def update_policy(gradient: np.ndarray) -> None:
+            self.append_gradient(util.condense(gradient/other.data,self.data.shape))
+            other.append_gradient(util.condense(-gradient * self.data/(other.data * other.data),other.data.shape))
+        return TensorNode(forward_update(),False,set([self,other]),forward_update,update_policy)
+
+
     def get_index(self, j: int):
         self.out_degree += 1
         def forward_update():
             return self.data[j]
         def update_policy(gradient):
             self.temp_grad[j] += gradient #i am the alpha sigma omega and tanny at the same time :moai:
-        return TensorNode(forward_update(),set([self]),forward_update,update_policy)
+        return TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
 
     def compile(self) -> list[list[TensorNode]]:
         """
