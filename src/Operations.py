@@ -17,7 +17,7 @@ def dot(self: t.TensorNode,other: t.TensorNode) -> t.TensorNode:
         other.append_gradient(gradient * self.data)
     def forward_update():
         return np.sum(self.data * other.data)
-    return t.TensorNode(forward_update(), False, set([self, other]), forward_update, update_policy)
+    return t.TensorNode(forward_update(), set([self, other]), forward_update, update_policy)
     
 def norm_squared(self: t.TensorNode) -> t.TensorNode:
     """
@@ -32,7 +32,7 @@ def norm_squared(self: t.TensorNode) -> t.TensorNode:
         self.append_gradient(2*(gradient*self.data))
     def forward_update():
         return np.sum(self.data * self.data)
-    return t.TensorNode(forward_update(), False, set([self]), forward_update, update_policy)
+    return t.TensorNode(forward_update(), set([self]), forward_update, update_policy)
 
 def log(self: t.TensorNode) -> t.TensorNode:
     """
@@ -47,7 +47,7 @@ def log(self: t.TensorNode) -> t.TensorNode:
         self.append_gradient(gradient/self.data)
     def forward_update():
         return np.log(self.data)
-    return t.TensorNode(forward_update(),False, set([self]), forward_update, update_policy)
+    return t.TensorNode(forward_update(), set([self]), forward_update, update_policy)
 
 def softmaxCrossEntropy(self: t.TensorNode, other: t.TensorNode, axis: int):
     """
@@ -71,7 +71,7 @@ def softmaxCrossEntropy(self: t.TensorNode, other: t.TensorNode, axis: int):
         exponential = np.exp(self.data - maximal)
         summy = np.sum(exponential,axis=axis, keepdims=True)
         self.append_gradient(gradient*(exponential/summy - other.data))
-    return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
+    return t.TensorNode(forward_update(),set([self]),forward_update,update_policy)
 
 def copy(self: t.TensorNode) -> t.TensorNode:
     """
@@ -86,7 +86,7 @@ def copy(self: t.TensorNode) -> t.TensorNode:
         self.append_gradient(gradient)
     def forward_update():
         return self.data
-    return t.TensorNode(forward_update(), False, set([self]), forward_update, update_policy)
+    return t.TensorNode(forward_update(), set([self]), forward_update, update_policy)
 
 
 def sAct(self: t.TensorNode) -> t.TensorNode:
@@ -103,7 +103,7 @@ def sAct(self: t.TensorNode) -> t.TensorNode:
     def update_policy(gradient: np.ndarray):
         a = util.sActPrime(self.data)
         self.append_gradient(gradient * a)
-    return t.TensorNode(forward_update(), False, set([self]), forward_update, update_policy)
+    return t.TensorNode(forward_update(), set([self]), forward_update, update_policy)
 
 def exp(self: t.TensorNode) -> t.TensorNode:
     """
@@ -113,7 +113,7 @@ def exp(self: t.TensorNode) -> t.TensorNode:
         return np.exp(self.data)
     def update_policy(gradient: np.ndarray):
         self.append_gradient(gradient * forward_update())
-    return t.TensorNode(forward_update(),False,set([self]), forward_update, update_policy)
+    return t.TensorNode(forward_update(),set([self]), forward_update, update_policy)
 
 
 #we NEED to make this work on a PER ROW basis...
@@ -134,9 +134,9 @@ def regularization(self: t.TensorNode, epsilon: float = 1e-7) -> t.TensorNode:
         val1 = denom * gradient
         val2 = np.ones_like(self.data) * (np.sum(gradient * self.data))
         self.append_gradient((val1 - val2)/(denom*denom))
-    return t.TensorNode(forward_update(), False, set([self]), forward_update, update_policy) 
+    return t.TensorNode(forward_update(), set([self]), forward_update, update_policy) 
 
-def sum(self: t.TensorNode, axis: tuple,keepDim=False) -> t.TensorNode:
+def sum(self: t.TensorNode, axis: tuple) -> t.TensorNode:
     """
     Performs the numpy operation of np.sum. 
     Args:
@@ -148,10 +148,10 @@ def sum(self: t.TensorNode, axis: tuple,keepDim=False) -> t.TensorNode:
     """
     self.out_degree += 1
     def forward_update():
-        return np.sum(self.data,axis=axis,keepdims=keepDim)
+        return np.sum(self.data,axis=axis,keepdims=True)
     def update_policy(gradient: np.ndarray):
         self.append_gradient(gradient) # looks like cheating but it duplicates the gradient like a sum should
-    return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
+    return t.TensorNode(forward_update(),set([self]),forward_update,update_policy)
 
 #dp/dt = kp(1-p/L) = p(1-p) as k = 1 and L = 1
 def sigmoid(self: t.TensorNode) -> t.TensorNode:
@@ -161,7 +161,7 @@ def sigmoid(self: t.TensorNode) -> t.TensorNode:
     def update_policy(gradient: np.ndarray):
         dx = forward_update()*(1-forward_update())
         self.append_gradient(gradient * dx)
-    return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
+    return t.TensorNode(forward_update(),set([self]),forward_update,update_policy)
 
 def tanh(self: t.TensorNode) -> t.TensorNode:
     self.out_degree += 1
@@ -169,5 +169,5 @@ def tanh(self: t.TensorNode) -> t.TensorNode:
         return np.tanh(self.data)
     def update_policy(gradient):
         self.append_gradient(-gradient/np.cosh(self.data)**2)
-    return t.TensorNode(forward_update(),False,set([self]),forward_update,update_policy)
+    return t.TensorNode(forward_update(),set([self]),forward_update,update_policy)
 
