@@ -20,7 +20,7 @@ class Pipeline:
         self.rev_topo_sort[0].temp_grad = np.ones_like(self.rev_topo_sort[0].temp_grad)
 
         #update paramaters
-        for node in reversed(self.rev_topo_sort):
+        for node in (self.rev_topo_sort):
             node.backprop()
 
     def forward(self) -> None:
